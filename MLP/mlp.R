@@ -127,17 +127,47 @@ mlp.predict <- function(model, test.set) {
 # -----------------------------------------------------------------
 # Função para calcular acurácia
 # -----------------------------------------------------------------
-mlp.accuracy <- function(model, test.set, true.classes) {
-  predictions <- mlp.predict(model, test.set)
+mlp.accuracy = function(model, test.set, true.classes) {
+  predictions = mlp.predict(model, test.set)
   
   if(model$output.length == 1) {
     # Caso binário
-    predicted_classes <- round(predictions)
+    predicted_classes = round(predictions)
   } else {
     # Caso multiclasse
-    predicted_classes <- apply(predictions, 1, which.max) - 1
+    predicted_classes = apply(predictions, 1, which.max) - 1
   }
   
-  accuracy <- sum(predicted_classes == true.classes) / length(true.classes)
-  return(accuracy)
+  tab = table(Real = true.classes, Predito = predicted_classes)
+  acc = sum(diag(tab)) / sum(tab)
+  
+  return(list(
+    accuracy = acc,
+    confusion_matrix = tab,
+    predicted_classes = predicted_classes
+  ))
+}
+
+mlp.detailed_metrics = function(confusion_matrix) {
+  # Para problemas multiclasse
+  if(nrow(confusion_matrix) > 2) {
+    metrics = list()
+    for(i in 1:nrow(confusion_matrix)) {
+      tp = confusion_matrix[i,i]
+      fp = sum(confusion_matrix[i,-i])
+      fn = sum(confusion_matrix[-i,i])
+      tn = sum(confusion_matrix[-i,-i])
+      
+      precision = tp / (tp + fp)
+      recall = tp / (tp + fn)
+      f1 = 2 * (precision * recall) / (precision + recall)
+      
+      metrics[[paste0("Class_", i-1)]] = list(
+        Precision = precision,
+        Recall = recall,
+        F1_Score = f1
+      )
+    }
+    return(metrics)
+  }
 }
